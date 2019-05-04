@@ -27,12 +27,14 @@ Plug 'luochen1990/rainbow'
 Plug 'andymass/vim-matchup'
 Plug 'junegunn/vim-slash'
 Plug 'RRethy/vim-illuminate'
+Plug 'yegappan/mru' 
 
 " Plugin: Completion and snippets
 if has('nvim') || v:version >= 800
   Plug 'Shougo/deoplete.nvim',
         \ has('nvim') ? { 'do': ':UpdateRemotePlugins' } : {}
 endif
+
 Plug 'roxma/vim-hug-neovim-rpc', has('nvim') ? { 'on' : [] } : {}
 Plug 'roxma/nvim-yarp'
 Plug 'Shougo/neoinclude.vim'
@@ -209,7 +211,7 @@ set confirm
 set hidden
 set shortmess=aoOtT
 silent! set shortmess+=cI
-set textwidth=79
+set textwidth=100
 set nowrap
 set linebreak
 set comments=n:>
@@ -246,6 +248,81 @@ set noshowmode
 if !has('gui_running')
   set visualbell
   set t_vb=
+let mapleader=","
+let maplocalleader=","
+function! GuiTabLabel()
+    let label = ''
+    let bufnrlist = tabpagebuflist(v:lnum)
+ 
+    " Add '+' if one of the buffers in the tab page is modified
+    for bufnr in bufnrlist
+    if getbufvar(bufnr, "&modified")
+        let label = '+'
+        break
+    endif
+    endfor
+ 
+    " Append the tab number
+    let label .= tabpagenr().': '
+ 
+    " Append the buffer name
+    let name = bufname(bufnrlist[tabpagewinnr(v:lnum) - 1])
+    if name == ''
+        " give a name to no-name documents
+        if &buftype=='quickfix'
+            let name = '[Quickfix List]'
+        else
+            let name = '[Not yet saved]'
+        endif
+    else
+        " get only the file name
+        let name = fnamemodify(name,":t")
+    endif
+    let label .= name
+ 
+    " Append the number of windows in the tab page
+    let wincount = tabpagewinnr(v:lnum, '$')
+    return label . '  [' . wincount . ']'
+endfunction
+ 
+" set up tab tooltips with every buffer name
+function! GuiTabToolTip()
+    let tip = ''
+    let bufnrlist = tabpagebuflist(v:lnum)
+ 
+    for bufnr in bufnrlist
+        " separate buffer entries
+        if tip!=''
+            let tip .= ' | '
+        endif
+ 
+        " Add name of buffer
+        let name=bufname(bufnr)
+        if name == ''
+            " give a name to no name documents
+            if getbufvar(bufnr,'&buftype')=='quickfix'
+                let name = '[Quickfix List]'
+            else
+                let name = '[Not yet saved]'
+            endif
+        endif
+        let tip.=name
+ 
+        " add modified/modifiable flags
+        if getbufvar(bufnr, "&modified")
+            let tip .= ' [+]'
+        endif
+        if getbufvar(bufnr, "&modifiable")==0
+            let tip .= ' [-]'
+        endif
+    endfor
+ 
+    return tip
+endfunction
+ 
+set guitablabel=%!GuiTabLabel()
+set guitabtooltip=%!GuiTabToolTip()
+
 endif
 
 " Folding
@@ -322,13 +399,18 @@ endfunction
 " {{{1 Appearance and UI
 
 set background=light
-set winwidth=70
-
+"set winwidth=70
+let mapleader=","
+let maplocalleader=","
 if has('gui_running')
   set lines=50
   set guifont=Inconsolata-g\ for\ Powerline\ Medium\ 9
-  set guioptions=ac
-  set guiheadroom=0
+  set guioptions=acimTrLe
+  set showtabline=1
+"  set guioptions += m
+"  set guioptions += t
+"  set guioptions += r
+ " set guiheadroom=0
 else
   " This is necessary for Vim
   if &t_Co == 8 && $TERM !~# '^linux'
@@ -349,8 +431,13 @@ else
 endif
 
 " Set colorscheme and custom colors
-autocmd vimrc_autocommands ColorScheme * call personal#init#custom_colors()
-silent! colorscheme my_solarized
+colorscheme oceandeep
+colors oceandeep
+"set guifont=DejaVu\ Sans\ Mono\ 10
+set guifont=Inconsolata\ 12 " very nice, but leaves terrible artefacts with national (mostly russian) characters
+
+"autocmd vimrc_autocommands ColorScheme * call personal#init#custom_colors()
+"silent! colorscheme my_solarized
 
 " Set gui cursor
 set guicursor=a:block
@@ -362,9 +449,19 @@ set guicursor+=r-cr:hor20-rCursor
 set guicursor+=a:blinkon0
 
 " Initialize statusline and tabline
-call statusline#init()
-call statusline#init_tabline()
-
+"call statusline#init()
+"call statusline#init_tabline()
+set cursorline   	"highlight current line
+set cursorcolumn 	"highlight current column
+set wildmenu
+set listchars=tab:>.,trail:.,extends:#,nbsp:.
+set laststatus=2	"status bar
+set statusline=%n:\ %f%m%r%h%w\ [%Y,%{&fileencoding},%{&fileformat}]\ [%l-%L,%v][%p%%]\ [%{strftime(\"%l:%M:%S\ \%p,\ %a\ %b\ %d,\ %Y\")}]\ %{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
+set ruler
+set rulerformat=%25(%n%m%r:\ %Y\ [%l,%v]\ %p%%%)
+" toujours afficher le mode courant
+set showcmd		 "show the command being typed
+set number 
 " {{{1 Mappings
 
 "
@@ -381,7 +478,6 @@ call statusline#init_tabline()
 " Disable some mappings
 noremap  <f1>   <nop>
 inoremap <f1>   <nop>
-inoremap <esc>  <nop>
 nnoremap Q      <nop>
 
 " Some general/standard remappings
@@ -419,8 +515,8 @@ nnoremap <silent> zj :silent! normal! zc<cr>zjzvzz
 nnoremap <silent> zk :silent! normal! zc<cr>zkzvzz[z
 
 " Backspace and return for improved navigation
-nnoremap        <bs> <c-o>zvzz
-nnoremap <expr> <cr> empty(&buftype) ? '<c-]>zvzz' : '<cr>'
+"nnoremap        <bs> <c-o>zvzz
+"nnoremap <expr> <cr> empty(&buftype) ? '<c-]>zvzz' : '<cr>'
 
 " Shortcuts for some files
 nnoremap <silent> <leader>ev :execute 'edit' resolve($MYVIMRC)<cr>
@@ -672,7 +768,7 @@ let g:targets_nl = 'nN'
 " }}}2
 " {{{2 plugin: UltiSnips
 
-let g:UltiSnipsExpandTrigger = '<c-u>'
+let g:UltiSnipsExpandTrigger = '<c-U>'
 let g:UltiSnipsJumpForwardTrigger = '<c-j>'
 let g:UltiSnipsJumpBackwardTrigger = '<c-k>'
 let g:UltiSnipsRemoveSelectModeMappings = 0
@@ -982,7 +1078,7 @@ let g:vimtex_fold_types = {
       \ 'sections' : {'parse_levels': 1},
       \}
 let g:vimtex_format_enabled = 1
-let g:vimtex_view_method = 'zathura'
+"let g:vimtex_view_method = 'zathura'
 let g:vimtex_view_automatic = 0
 let g:vimtex_view_forward_search_on_start = 0
 let g:vimtex_toc_config = {
@@ -1002,6 +1098,10 @@ let g:vimtex_complete_bib = {
       \ 'menu_fmt' : '@year, @author_short, @title',
       \}
 let g:vimtex_echo_verbose_input = 0
+let g:vimtex_view_general_viewer = 'okular'
+let g:vimtex_view_general_options = 'file:@pdf\#src:@line@tex'
+let g:vimtex_view_general_options_latexmk = '--unique'
+
 
 if has('nvim')
   let g:vimtex_compiler_progname = 'nvr'
