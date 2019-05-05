@@ -221,7 +221,7 @@ set formatlistpat=^\\s*[-*]\\s\\+
 set formatlistpat+=\\\|^\\s*(\\(\\d\\+\\\|[a-z]\\))\\s\\+
 set formatlistpat+=\\\|^\\s*\\(\\d\\+\\\|[a-z]\\)[:).]\\s\\+
 set winaltkeys=no
-set mouse=
+set mouse=a
 set gdefault
 set updatetime=1000
 
