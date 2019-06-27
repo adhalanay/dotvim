@@ -28,6 +28,8 @@ Plug 'andymass/vim-matchup'
 Plug 'junegunn/vim-slash'
 Plug 'RRethy/vim-illuminate'
 Plug 'yegappan/mru' 
+Plug 'hzchirs/vim-material'
+Plug 'JuliaEditorSupport/julia-vim'
 
 " Plugin: Completion and snippets
 if has('nvim') || v:version >= 800
@@ -221,7 +223,7 @@ set formatlistpat=^\\s*[-*]\\s\\+
 set formatlistpat+=\\\|^\\s*(\\(\\d\\+\\\|[a-z]\\))\\s\\+
 set formatlistpat+=\\\|^\\s*\\(\\d\\+\\\|[a-z]\\)[:).]\\s\\+
 set winaltkeys=no
-set mouse=a
+set mouse=nv
 set gdefault
 set updatetime=1000
 
@@ -444,8 +446,8 @@ set guicursor=a:block
 set guicursor+=n:Cursor
 set guicursor+=o-c:iCursor
 set guicursor+=v:vCursor
-set guicursor+=i-ci-sm:ver30-iCursor
-set guicursor+=r-cr:hor20-rCursor
+set guicursor+=i-ci-sm:ver25-Cursor
+set guicursor+=r-cr:hor20-Cursor
 set guicursor+=a:blinkon0
 
 " Initialize statusline and tabline
@@ -1017,7 +1019,11 @@ let g:tmux_navigator_disable_when_zoomed = 1
 let g:vebugger_leader = '<leader>d'
 
 " }}}
+" {{{2 plugin: julia-vim
+let g:latex_to_unicode_auto = 1
+filetype indent on
 
+" }}}
 " {{{2 filetype: json
 
 let g:vim_json_syntax_conceal = 0
@@ -1148,3 +1154,4 @@ let g:wiki_file_open = 'personal#wiki#file_open'
 " }}}2
 
 " }}}1
+
