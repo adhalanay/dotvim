@@ -28,9 +28,7 @@ Plug 'andymass/vim-matchup'
 Plug 'junegunn/vim-slash'
 Plug 'RRethy/vim-illuminate'
 Plug 'yegappan/mru' 
-Plug 'hzchirs/vim-material'
 Plug 'JuliaEditorSupport/julia-vim'
-
 " Plugin: Completion and snippets
 if has('nvim') || v:version >= 800
   Plug 'Shougo/deoplete.nvim',
@@ -40,11 +38,10 @@ endif
 Plug 'roxma/vim-hug-neovim-rpc', has('nvim') ? { 'on' : [] } : {}
 Plug 'roxma/nvim-yarp'
 Plug 'Shougo/neoinclude.vim'
-Plug 'neoclide/coc.nvim', {'tag': '*', 'do': './install.sh'}
 Plug 'Shougo/neco-vim'
-Plug 'Shougo/neoinclude.vim'
-Plug 'neoclide/coc-neco'
-Plug 'jsfaint/coc-neoinclude'
+Plug 'Shougo/neco-syntax'
+Plug 'prabirshrestha/async.vim'
+Plug 'prabirshrestha/vim-lsp'
 Plug 'SirVer/ultisnips'
 
 " Plugin: Text objects and similar
@@ -52,11 +49,8 @@ Plug 'wellle/targets.vim'
 Plug 'machakann/vim-sandwich'
 
 " Plugin: Finder, motions, and tags
-Plug 'junegunn/fzf', {
-      \ 'dir': '~/.fzf',
-      \ 'do': './install --all --no-update-rc',
-      \}
-Plug 'junegunn/fzf.vim'
+Plug 'ctrlpvim/ctrlp.vim'
+Plug 'FelikZ/ctrlp-py-matcher'
 " Plug 'raghur/fruzzy'
 if has('nvim') || v:version >= 800
   Plug 'ludovicchabant/vim-gutentags'
@@ -83,8 +77,6 @@ Plug 'zirrostig/vim-schlepp'
 " Plugin: VCS
 Plug 'rbong/vim-flog'
 Plug 'tpope/vim-fugitive'
-Plug 'tpope/vim-rhubarb'
-Plug 'rhysd/git-messenger.vim'
 Plug 'ludovicchabant/vim-lawrencium'
 
 " Plugin: Tmux (incl. filetype)
@@ -106,6 +98,7 @@ Plug 'tpope/vim-unimpaired'
 
 " Filetype: python
 Plug 'davidhalter/jedi-vim'
+Plug 'zchee/deoplete-jedi'
 Plug 'vim-python/python-syntax'
 Plug 'kalekundert/vim-coiled-snake'  " Folding
 Plug 'tweekmonster/braceless.vim'    " Indents
@@ -138,9 +131,6 @@ if g:vimrc#bootstrap | finish | endif
 augroup vimrc_autocommands
   autocmd!
 
-  " Specify some maps for filenames to filetypes
-  autocmd BufNewFile,BufRead *pylintrc set filetype=cfg
-
   " Only use cursorline for current window
   autocmd WinEnter,FocusGained * setlocal cursorline
   autocmd WinLeave,FocusLost   * setlocal nocursorline
@@ -152,7 +142,7 @@ augroup vimrc_autocommands
   autocmd CmdwinEnter * nnoremap <buffer> q <c-c><c-c>
 
   " Close preview after complete
-  autocmd CompleteDone * if pumvisible() == 0 | pclose | endif
+  " autocmd CompleteDone * pclose
 augroup END
 
 " {{{1 Options
@@ -231,9 +221,9 @@ set formatlistpat=^\\s*[-*]\\s\\+
 set formatlistpat+=\\\|^\\s*(\\(\\d\\+\\\|[a-z]\\))\\s\\+
 set formatlistpat+=\\\|^\\s*\\(\\d\\+\\\|[a-z]\\)[:).]\\s\\+
 set winaltkeys=no
-set mouse=nv
+set mouse=a
 set gdefault
-set updatetime=500
+set updatetime=1000
 
 " Completion
 set wildmode=longest:full,full
@@ -454,8 +444,8 @@ set guicursor=a:block
 set guicursor+=n:Cursor
 set guicursor+=o-c:iCursor
 set guicursor+=v:vCursor
-set guicursor+=i-ci-sm:ver25-Cursor
-set guicursor+=r-cr:hor20-Cursor
+set guicursor+=i-ci-sm:ver30-Cursor
+set guicursor+=r-cr:hor20-rCursor
 set guicursor+=a:blinkon0
 
 " Initialize statusline and tabline
@@ -479,6 +469,8 @@ set number
 "
 "   Q
 "   U
+"   ctrl-h
+"   ctrl-j
 "   ctrl-s
 "   ctrl-space
 "
@@ -495,8 +487,7 @@ nnoremap J      mzJ`z
 nnoremap dp     dp]c
 nnoremap do     do]c
 nnoremap '      `
-nnoremap <c-e>       <c-^>
-nnoremap <c-w><c-e>  <c-w><c-^>
+nnoremap <c-e>  <c-^>
 nnoremap <c-p>  <c-i>
 nnoremap <expr> j v:count ? 'j' : 'gj'
 nnoremap <expr> k v:count ? 'k' : 'gk'
@@ -563,9 +554,8 @@ let g:loaded_zipPlugin = 1
 
 " {{{2 feature: git
 
-let g:flog_default_arguments = {}
-let g:flog_default_arguments.format = "[%h] %s\n          %ad%d"
-let g:flog_default_arguments.date = 'format:%Y-%m-%d %H:%M:%S'
+let g:flog_default_format = "[%h] %ad%d\n          %s"
+let g:flog_default_date_format = 'format:%Y-%m-%d %H:%M:%S'
 
 nnoremap <silent><leader>gl :silent Flog -all<cr>
 nnoremap <silent><leader>gL :silent Flog -all -path=%<cr>
@@ -588,53 +578,46 @@ augroup vimrc_fugitive
 augroup END
 
 " }}}2
-" {{{2 feature: completion and language server client
+" {{{2 feature: completion
 
-" See also: coc-settings.json
+let g:deoplete#enable_at_startup = 1
 
-let g:coc_global_extensions = [
-      \ 'coc-vimtex',
-      \ 'coc-omni',
-      \ 'coc-snippets',
-      \ 'coc-python',
-      \ 'coc-json',
-      \ 'coc-yaml',
-      \]
+try
+  call deoplete#custom#option('smart_case', v:true)
+  call deoplete#custom#option('ignore_sources', {
+        \ '_': ['around'],
+        \ 'dagbok': ['syntax'],
+        \})
 
+  call deoplete#custom#source('_', 'disabled_syntaxes', ['Comment', 'String'])
+  call deoplete#custom#source('ultisnips', 'rank', 1000)
+
+  call deoplete#custom#var('omni', 'input_patterns', {
+        \ 'foam' : g:foam#complete#re_refresh_deoplete,
+        \ 'tex' : g:vimtex#re#deoplete,
+        \ 'wiki' : '\[\[[^]|]{3,}$',
+        \})
+catch
+endtry
+
+if v:version >= 800
+  inoremap <expr><c-h>   deoplete#smart_close_popup() . "\<c-h>"
+  inoremap <expr><bs>    deoplete#smart_close_popup() . "\<c-h>"
+endif
 inoremap <expr><cr>    pumvisible() ? "\<c-y>\<cr>" : "\<cr>"
 inoremap <expr><tab>   pumvisible() ? "\<c-n>" : "\<tab>"
 inoremap <expr><s-tab> pumvisible() ? "\<c-p>" : "\<s-tab>"
-
-nmap <silent> <leader>ld <plug>(coc-definition)
-nmap <silent> <leader>lt <plug>(coc-type-definition)
-nmap <silent> <leader>li <plug>(coc-implementation)
-nmap <silent> <leader>lf <plug>(coc-references)
-nmap          <leader>lr <plug>(coc-rename)
-
-nmap <silent> <leader>lp <plug>(coc-diagnostic-prev)
-nmap <silent> <leader>ln <plug>(coc-diagnostic-next)
-
-nnoremap <silent> K :call <sid>show_documentation()<cr>
-function! s:show_documentation()
-  if &filetype ==# 'vim'
-    execute 'help ' . expand('<cword>')
-  else
-    call CocAction('doHover')
-  endif
-endfunction
-
-if exists('*CocActionAsync')
-  augroup coc_settings
-    autocmd!
-    autocmd CursorHold * silent call CocActionAsync('highlight')
-  augroup END
-endif
 
 " }}}2
 
 " {{{2 plugin: ale
 
 let g:ale_set_signs = 0
+
+if exists('*nvim_buf_set_virtual_text')
+  let g:ale_virtualtext_cursor = 1
+  let g:ale_echo_cursor = 0
+endif
 
 let g:ale_lint_on_enter = 0
 let g:ale_lint_on_filetype_changed = 0
@@ -693,62 +676,64 @@ nnoremap <silent><leader>fu :CtrlSFUpdate<cr>
 vmap     <silent><leader>f  <Plug>CtrlSFVwordExec
 
 " }}}2
+" {{{2 plugin: CtrlP
+
+let g:ctrlp_map = ''
+let g:ctrlp_switch_buffer = 'e'
+let g:ctrlp_working_path_mode = 'rc'
+let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files']
+
+if executable('fd')
+  let g:ctrlp_user_command += ['fd --type f --color=never "" %s']
+  let g:ctrlp_use_caching = 0
+elseif executable('rg')
+  let g:ctrlp_user_command += ['rg %s --files --color=never --glob ""']
+  let g:ctrlp_use_caching = 0
+elseif executable('ag')
+  let g:ctrlp_user_command += ['ag %s -l --nocolor -g ""']
+  let g:ctrlp_use_caching = 0
+endif
+
+" let g:ctrlp_match_func = {'match': 'pymatcher#PyMatch'}
+" let g:ctrlp_match_func = {'match': 'fruzzy#ctrlp#matcher'}
+" let g:fruzzy#usenative = 1
+let g:ctrlp_tilde_homedir = 1
+let g:ctrlp_match_window = 'top,order:ttb,min:30,max:30'
+let g:ctrlp_status_func = {
+      \ 'main' : 'statusline#ctrlp',
+      \ 'prog' : 'statusline#ctrlp',
+      \}
+let g:ctrlp_follow_symlinks = 1
+let g:ctrlp_mruf_exclude = '\v' . join([
+      \ '\/\.%(git|hg)\/',
+      \ '\.wiki$',
+      \ '\.snip$',
+      \ '\.vim\/vimrc$',
+      \ '\/vim\/.*\/doc\/.*txt$',
+      \ '_%(LOCAL|REMOTE)_',
+      \ '\~record$',
+      \ '^\/tmp\/',
+      \ '^man:\/\/',
+      \], '|')
+
+" Mappings
+nnoremap <silent> <leader>oo       :CtrlP<cr>
+nnoremap <silent> <leader>og       :CtrlPRoot<cr>
+nnoremap <silent> <leader>ov       :CtrlP ~/.vim<cr>
+nnoremap <silent> <leader>op       :call personal#ctrlp#vim_plugs()<cr>
+nnoremap <silent> <leader>ob       :CtrlPBuffer<cr>
+nnoremap <silent> <leader>ow       :CtrlPWiki<cr>
+nnoremap <silent> <leader>ot       :CtrlPTag<cr>
+nnoremap <silent> <leader><leader> :CtrlPMRU<cr>
+" nnoremap <silent> <leader><leader>
+"       \ :call personal#ctrlp#disable_matchfunc('CtrlPMRU')<cr>
+
+" }}}2
 " {{{2 plugin: FastFold
 
 nmap <sid>(DisableFastFoldUpdate) <plug>(FastFoldUpdate)
 let g:fastfold_fold_command_suffixes =  ['x','X']
 let g:fastfold_fold_movement_commands = []
-
-" }}}2
-" {{{2 plugin: Fzf
-
-nnoremap <silent> <leader>oo       :Files<cr>
-nnoremap <silent> <leader>ov       :Files ~/.vim<cr>
-nnoremap <silent> <leader>op       :Files ~/.vim/bundle<cr>
-nnoremap <silent> <leader>ob       :Buffers<cr>
-nnoremap <silent> <leader>ot       :Tags<cr>
-nnoremap <silent> <leader><leader> :History<cr>
-nnoremap <silent> <leader>ow       :Files ~/documents/wiki<cr>
-
-" return fzf#run(
-"   s:wrap(a:name, merged, bang))
-
-" \ 'source':  s:all_files(),
-"   \ 'options': ['-m', '--header-lines', !empty(expand('%')), '--prompt', 'Hist> ']
-
-" return fzf#vim#_uniq(
-" map(
-"   \ filter([expand('%')], 'len(v:val)')
-"   \   + filter(map(s:buflisted_sorted(), 'bufname(v:val)'), 'len(v:val)')
-"   \   + filter(copy(v:oldfiles), "filereadable(fnamemodify(v:val, ':p'))"),
-"   \ 'fnamemodify(v:val, ":~:.")'))
-
-let g:fzf_layout = { 'up': '60%' }
-
-let g:fzf_colors = {
-      \ 'fg':      ['fg', 'Normal'],
-      \ 'bg':      ['bg', 'Normal'],
-      \ 'hl':      ['fg', 'Comment'],
-      \ 'fg+':     ['fg', 'CursorLine', 'CursorColumn', 'Normal'],
-      \ 'bg+':     ['bg', 'CursorLine', 'CursorColumn'],
-      \ 'hl+':     ['fg', 'Statement'],
-      \ 'info':    ['fg', 'PreProc'],
-      \ 'border':  ['fg', 'Ignore'],
-      \ 'prompt':  ['fg', 'Conditional'],
-      \ 'pointer': ['fg', 'Exception'],
-      \ 'marker':  ['fg', 'Keyword'],
-      \ 'spinner': ['fg', 'Label'],
-      \ 'header':  ['fg', 'Comment'],
-      \}
-
-function! s:nothing()
-endfunction
-
-augroup my_fzf_config
-  autocmd!
-  autocmd User FzfStatusLine call s:nothing()
-  autocmd FileType fzf silent! tunmap <esc>
-augroup END
 
 " }}}2
 " {{{2 plugin: rainbow
@@ -871,6 +856,34 @@ nnoremap <leader>hr :call personal#hg#wrapper('Hgvrecord')<cr>
 nnoremap <leader>ha :call personal#hg#abort()<cr>
 
 " }}}
+" {{{2 plugin: vim-lsp
+
+" Disable on old Vims
+if v:version < 800
+  let g:lsp_auto_enable = 0
+endif
+
+let g:lsp_log_verbose = 1
+let g:lsp_log_file = '/tmp/vim-lsp.log'
+let g:lsp_diagnostics_enabled = 0
+
+nnoremap <silent> <leader>ld :LspDefinition<cr>
+nnoremap <silent> <leader>lr :LspReferences<cr>
+nnoremap <silent> <leader>lR :LspRename<cr>
+nnoremap <silent> <leader>lh :LspHover<cr>
+
+if executable('pyls')
+  augroup vimrc_lsp
+    autocmd!
+    autocmd User lsp_setup call lsp#register_server({
+          \ 'name': 'pyls',
+          \ 'cmd': {server_info->['pyls']},
+          \ 'whitelist': ['python'],
+          \})
+  augroup END
+endif
+
+" }}}2
 " {{{2 plugin: vim-matchup
 
 let g:matchup_matchparen_status_offscreen = 0
@@ -1004,11 +1017,7 @@ let g:tmux_navigator_disable_when_zoomed = 1
 let g:vebugger_leader = '<leader>d'
 
 " }}}
-" {{{2 plugin: julia-vim
-let g:latex_to_unicode_auto = 1
-filetype indent on
 
-" }}}
 " {{{2 filetype: json
 
 let g:vim_json_syntax_conceal = 0
@@ -1139,4 +1148,3 @@ let g:wiki_file_open = 'personal#wiki#file_open'
 " }}}2
 
 " }}}1
-

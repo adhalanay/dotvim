@@ -13,10 +13,13 @@ setlocal iskeyword+=-
 if &modifiable | finish | endif
 
 setlocal nohlsearch
-setlocal foldmethod=marker
 
 noremap <silent><buffer> q     :bwipeout<cr>
 noremap <silent><buffer> <cr>  
 noremap <silent><buffer> <bs>  <c-o>
 noremap <silent><buffer> <c-n> /\([\|*']\)\zs\S*\ze\1<cr>
 noremap <silent><buffer> <c-p> ?\([\|*']\)\zs\S*\ze\1<cr>
+noremap <silent><buffer> <tab>
+      \ :call search('<bar>[^ <bar>]\+<bar>\<bar>''[A-Za-z0-9_-]\{2,}''')<cr>
+noremap <silent><buffer> <s-tab>
+      \ :call search('<bar>[^ <bar>]\+<bar>\<bar>''[A-Za-z0-9_-]\{2,}''','b')<cr>

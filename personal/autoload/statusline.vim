@@ -37,26 +37,78 @@ function! statusline#main(winnr) " {{{1
   let l:buftype = getbufvar(l:bufnr, '&buftype')
   let l:filetype = getbufvar(l:bufnr, '&filetype')
 
-  " Try to call buffer type specific functions
-  try
-    return s:{l:buftype}(l:bufnr, l:active, l:winnr)
-  catch /E117: Unknown function/
-  endtry
-
-  " Try to call filetype specific functions
-  try
-    return s:{l:filetype}(l:bufnr, l:active, l:winnr)
-  catch /E117: Unknown function/
-  endtry
-
-  return s:main(l:bufnr, l:active)
+  if l:buftype ==# 'help'
+    return s:help(l:bufnr, l:active)
+  elseif l:buftype ==# 'quickfix'
+    return s:quickfix(l:bufnr, l:active, a:winnr)
+  elseif l:filetype ==# 'wiki'
+    return s:wiki(l:bufnr, l:active)
+  elseif l:filetype ==# 'man'
+    return s:manpage(l:bufnr, l:active)
+  else
+    return s:main(l:bufnr, l:active)
+  endif
 endfunction
 
 " }}}1
 
 "
-" Main statusline function
+" Main statusline funcs
 "
+function! s:help(bufnr, active) " {{{1
+  let l:name = bufname(a:bufnr)
+  return s:color(' ' . fnamemodify(l:name, ':t:r') . ' %= HELP ',
+        \ 'SLHighlight', a:active)
+endfunction
+
+" }}}1
+function! s:quickfix(bufnr, active, winnr) " {{{1
+  let l:nr = personal#qf#get_prop({
+        \ 'winnr': a:winnr,
+        \ 'key': 'nr',
+        \})
+  let l:last = personal#qf#get_prop({
+        \ 'winnr': a:winnr,
+        \ 'key': 'nr',
+        \ 'val': '$',
+        \})
+
+  let text = ' ['
+  let text .= personal#qf#is_loc(a:winnr) ? 'Loclist' : 'Quickfix'
+  if l:last > 1
+    let text .= ' ' . l:nr . '/' . l:last
+  endif
+
+  let text .= '] (' . personal#qf#length(a:winnr) . ') '
+
+  let text .= personal#qf#get_prop({
+        \ 'winnr': a:winnr,
+        \ 'key': 'title',
+        \})
+  let stat  = s:color(text, 'SLHighlight', a:active)
+
+  return stat
+endfunction
+
+" }}}1
+function! s:wiki(bufnr, active) " {{{1
+  let stat  = s:color(' wiki: ', 'SLAlert', a:active)
+  let stat .= s:color(fnamemodify(bufname(a:bufnr), ':t:r'),
+        \ 'SLHighlight', a:active)
+  if get(get(b:, 'wiki', {}), 'in_diary', 0)
+    let stat .= s:color(' (diary)', 'SLAlert', a:active)
+  endif
+
+  let stat .= getbufvar(a:bufnr, '&modifiable')
+        \ ? '' : s:color(' [Locked]', 'SLAlert', a:active)
+  let stat .= getbufvar(a:bufnr, '&readonly')
+        \ ? s:color(' [‼]', 'SLAlert', a:active) : ''
+  let stat .= getbufvar(a:bufnr, '&modified')
+        \ ? s:color(' [+]', 'SLAlert', a:active) : ''
+  return stat
+endfunction
+
+" }}}1
 function! s:main(bufnr, active) " {{{1
   let stat  = s:color(' %<%f', 'SLHighlight', a:active)
   let stat .= getbufvar(a:bufnr, '&modifiable')
@@ -102,74 +154,7 @@ function! s:main(bufnr, active) " {{{1
 endfunction
 
 " }}}1
-
-"
-" Buffer type functions
-"
-function! s:help(bufnr, active, winnr) " {{{1
-  let l:name = bufname(a:bufnr)
-  return s:color(' ' . fnamemodify(l:name, ':t:r') . ' %= HELP ',
-        \ 'SLHighlight', a:active)
-endfunction
-
-" }}}1
-function! s:quickfix(bufnr, active, winnr) " {{{1
-  let l:nr = personal#qf#get_prop({
-        \ 'winnr': a:winnr,
-        \ 'key': 'nr',
-        \})
-  let l:last = personal#qf#get_prop({
-        \ 'winnr': a:winnr,
-        \ 'key': 'nr',
-        \ 'val': '$',
-        \})
-
-  let text = ' ['
-  let text .= personal#qf#is_loc(a:winnr) ? 'Loclist' : 'Quickfix'
-  if l:last > 1
-    let text .= ' ' . l:nr . '/' . l:last
-  endif
-
-  let text .= '] (' . personal#qf#length(a:winnr) . ') '
-
-  let text .= personal#qf#get_prop({
-        \ 'winnr': a:winnr,
-        \ 'key': 'title',
-        \})
-  let stat  = s:color(text, 'SLHighlight', a:active)
-
-  return stat
-endfunction
-
-" }}}1
-
-"
-" Filetype functions
-"
-function! s:wiki(bufnr, active, winnr) " {{{1
-  let stat  = s:color(' wiki: ', 'SLAlert', a:active)
-  let stat .= s:color(fnamemodify(bufname(a:bufnr), ':t:r'),
-        \ 'SLHighlight', a:active)
-  if get(get(b:, 'wiki', {}), 'in_diary', 0)
-    let stat .= s:color(' (diary)', 'SLAlert', a:active)
-  endif
-
-  let stat .= getbufvar(a:bufnr, '&modifiable')
-        \ ? '' : s:color(' [Locked]', 'SLAlert', a:active)
-  let stat .= getbufvar(a:bufnr, '&readonly')
-        \ ? s:color(' [‼]', 'SLAlert', a:active) : ''
-  let stat .= getbufvar(a:bufnr, '&modified')
-        \ ? s:color(' [+]', 'SLAlert', a:active) : ''
-  return stat
-endfunction
-
-" }}}1
-function! s:fzf(bufnr, active, winnr) " {{{1
-  return s:color(' %= < fzf ', 'SLHighlight', a:active)
-endfunction
-
-" }}}1
-function! s:manpage(bufnr, active, winnr) " {{{1
+function! s:manpage(bufnr, active) " {{{1
   return s:color(' %<%f', 'SLHighlight', a:active)
 endfunction
 
